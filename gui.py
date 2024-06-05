@@ -2,6 +2,7 @@
 # pip3 install Pillow
 # pip3 install tkcalendar
 # pip3 install tkmacosx
+# pip3 install ttkbootstrap
 
 from tkinter import *
 from tkinter import scrolledtext # for previous export history, and contact selection
@@ -24,11 +25,12 @@ def submit_handler():
         print("~~~download location needs to be selected")
         # Highlight the error and don't allow the user to download anything
     # Get the filetype selected and do something with it
+    print(start, end)
     filetype = filetype_clicked.get()
     print(filetype)
         
 # Function: All Dates checkbox handler
-def get_all_dates():
+def set_all_dates():
     if(all_dates_toggle.get() == 0):
         # Show the calendars
         end_date_cal.config(state=NORMAL)
@@ -69,7 +71,7 @@ def get_previous_export():
     start = lines.pop(0)
     end = lines.pop(0)
     # Display the output of start -> end dates, and chats exported
-    previous_export_scroll.insert(INSERT, "Previous Export Dates: {start} -> {end}\n\nChats Exported: {chats}".format(start=start, end=end, chats=", ".join(lines)))
+    previous_export_scroll.insert(INSERT, "Previous Export Dates: {start} -> {end}\n\nChats Exported:\n{chats}".format(start=start, end=end, chats=", ".join(lines)))
     # Set the field to disabled after inserting values
     previous_export_scroll.config(state=DISABLED)
 
@@ -82,13 +84,18 @@ root.title("iMessage Extractor App") # Set the title of the window
 # Set the root dimensions and center it in the screen
 root.update_idletasks() #Add this line
 width = 1200
-height = 800
+height = 790
 x = (root.winfo_screenwidth() // 2) - (width // 2)
 y = (root.winfo_screenheight() // 2) - (height // 2)
 root.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
 # Ensure the window is not resizable
 root.resizable(False, False)
+
+# Set the Mac Dock icon
+ico = Image.open('./images/bubble-download.ico')
+photo = ImageTk.PhotoImage(ico)
+root.wm_iconphoto(False, photo)
 
 # Create a frame to hold the entire program
 main_frame = LabelFrame(root, width=1000, height=700, borderwidth=0, highlightthickness=0)
@@ -122,36 +129,68 @@ new_export_frame.grid(row=4, column=0, pady=5, sticky=W)
 new_export_msg = Label(new_export_frame, text="** Reminder: Perform an unencrypted backup of your iPhone prior to exporting **", font=("Arial", 14, "italic"), fg="red")
 new_export_msg.grid(row=1, column=0, padx=5, pady=5)
 
-# Create an All Dates checkbox
-all_dates_frame = LabelFrame(content_frame, borderwidth=0, highlightthickness=0)
-all_dates_frame.grid(row=5, column=0, pady=5, sticky=W)
-dates_title = Label(all_dates_frame, text="Export Dates:", font=("Arial", 18, "bold"))
-dates_title.grid(row=0, column=0, sticky=W)
-all_dates_toggle = IntVar()
-all_dates = Checkbutton(all_dates_frame, text="Download messages from all available dates", variable=all_dates_toggle, command=get_all_dates)
-all_dates.grid(row=1, column=0, padx=5, pady=5, sticky=W)
-
-# Create two calendar picker widgets
+# Create a frame to hold calendar contents
 cal_frame = LabelFrame(content_frame, borderwidth=0, highlightthickness=0)
-cal_frame.grid(row=6, column=0, padx=5, pady=5, sticky=W)
+cal_frame.grid(row=5, column=0, padx=5, pady=5, sticky=W)
 
-# Start Date calendar picker
-start_date_cal = Calendar(cal_frame, selectmode="day", year=2024, month=6, day=2, firstweekday="sunday", showweeknumbers=False, background="white", foreground="black", selectforeground="#4077FF")
-start_date_cal.grid(row=0, column=0, padx=60)
-# Create a label for date output
-start_date_output = Label(cal_frame, text="Start Date: ", state=DISABLED)
-start_date_output.grid(row=1, column=0, pady=5)
-# Bind the calendar clicks to the label output
-start_date_cal.bind("<<CalendarSelected>>", lambda event: start_date_output.config(text="Start Date: " + start_date_cal.get_date()))
+# Create dates title
+dates_title = Label(cal_frame, text="Export Dates:", font=("Arial", 18, "bold"))
+dates_title.grid(row=0, column=0, sticky=W)
 
-# End Date calendar picker
-end_date_cal = Calendar(cal_frame, selectmode="day", year=2024, month=6, day=2, firstweekday="sunday", showweeknumbers=False, background="white", foreground="black", selectforeground="#4077FF")
-end_date_cal.grid(row=0, column=1, padx=60)
-# Create a label for date output
-end_date_output = Label(cal_frame, text="End Date: ", state=DISABLED)
-end_date_output.grid(row=1, column=1, pady=5)
+# Create calendar picker inputs
+start_date_cal = DateEntry(cal_frame, selectmode="day", year=2024, month=1, day=1, width=20, foreground='white', borderwidth=2)
+start_date_cal.grid(row=2, column=0)
+start_date_cal._top_cal.overrideredirect(False) # Workaround for calendar widget popup not showing issue: https://github.com/j4321/tkcalendar/issues/41
+end_date_cal = DateEntry(cal_frame, selectmode="day", foreground='white', width=20, borderwidth=2)
+end_date_cal.grid(row=2, column=1, padx=20)
+end_date_cal._top_cal.overrideredirect(False) # Workaround for calendar widget popup not showing issue: https://github.com/j4321/tkcalendar/issues/41
+
+# Create an All Dates checkbutton to select all dates
+all_dates_toggle = IntVar()
+all_dates = Checkbutton(cal_frame, text="ALL dates", variable=all_dates_toggle, command=set_all_dates)
+all_dates.grid(row=2, column=3, padx=5, pady=5, sticky=W)
+
+# Create labels for start and end date output
+start_date_output = Label(cal_frame, text="Start Date: ", foreground="#71797E")
+start_date_output.grid(row=1, column=0, pady=5, sticky=W)
+end_date_output = Label(cal_frame, text="End Date: ", foreground="#71797E")
+end_date_output.grid(row=1, column=1, padx=20, pady=5, sticky=W)
 # Bind the calendar clicks to the label output
-end_date_cal.bind("<<CalendarSelected>>", lambda event: end_date_output.config(text="End Date: " + end_date_cal.get_date()))
+start_date_cal.bind("<<DateEntrySelected>>", lambda event: start_date_output.config(text="Start Date: " + start_date_cal.get_date().strftime("%Y-%m-%d")))
+end_date_cal.bind("<<DateEntrySelected>>", lambda event: end_date_output.config(text="End Date: " + end_date_cal.get_date().strftime("%Y-%m-%d")))
+
+
+# OLD - CALENDAR PICKER
+# Create an All Dates checkbox
+# all_dates_frame = LabelFrame(content_frame, borderwidth=0, highlightthickness=0)
+# all_dates_frame.grid(row=5, column=0, pady=5, padx=5, sticky=W)
+# dates_title = Label(cal_frame, text="Export Dates:", font=("Arial", 18, "bold"))
+# dates_title.grid(row=0, column=0, sticky=W)
+# all_dates_toggle = IntVar()
+# all_dates = Checkbutton(all_dates_frame, text="ALL dates", variable=all_dates_toggle, command=get_all_dates)
+# all_dates.grid(row=1, column=0, padx=5, pady=5, sticky=W)
+
+# # Create two calendar picker widgets
+# cal_frame = LabelFrame(content_frame, borderwidth=0, highlightthickness=0)
+# cal_frame.grid(row=6, column=0, padx=5, pady=5, sticky=W)
+
+# # Start Date calendar picker
+# start_date_cal = Calendar(cal_frame, selectmode="day", year=2024, month=6, day=2, firstweekday="sunday", showweeknumbers=False, background="white", foreground="black", selectforeground="#4077FF")
+# start_date_cal.grid(row=1, column=0, padx=60)
+# # Create a label for date output
+# start_date_output = Label(cal_frame, text="Start Date: ", state=DISABLED)
+# start_date_output.grid(row=0, column=0, pady=5)
+# # Bind the calendar clicks to the label output
+# start_date_cal.bind("<<CalendarSelected>>", lambda event: start_date_output.config(text="Start Date: " + start_date_cal.get_date()))
+
+# # End Date calendar picker
+# end_date_cal = Calendar(cal_frame, selectmode="day", year=2024, month=6, day=2, firstweekday="sunday", showweeknumbers=False, background="white", foreground="black", selectforeground="#4077FF")
+# end_date_cal.grid(row=1, column=1, padx=60)
+# # Create a label for date output
+# end_date_output = Label(cal_frame, text="End Date: ", state=DISABLED)
+# end_date_output.grid(row=0, column=1, pady=5)
+# # Bind the calendar clicks to the label output
+# end_date_cal.bind("<<CalendarSelected>>", lambda event: end_date_output.config(text="End Date: " + end_date_cal.get_date()))
 
 # Create a section for contacts to download
 contacts_frame = LabelFrame(content_frame, borderwidth=0, highlightthickness=0)
@@ -208,3 +247,40 @@ submit_btn.grid(row=0, column=0)
 
 # Create an event loop
 root.mainloop()
+
+
+
+
+
+
+
+# # Creating a scrollable window: https://www.youtube.com/watch?v=0WafQCaok6g
+# # Create a main frame
+# main_frame = Frame(root)
+# main_frame.pack(fill=BOTH, expand=1)
+
+# # Create a Canvas
+# my_canvas = Canvas(main_frame, bg="black")
+# my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+
+# # Add a Scrollbar to the Canvas
+# my_scrollbar = ttk.Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
+# my_scrollbar.pack(side=RIGHT, fill=Y)
+
+# # Configure the Canvas
+# my_canvas.configure(yscrollcommand=my_scrollbar.set)
+# my_canvas.bind('<Configure>', lambda e : my_canvas.configure(scrollregion=my_canvas.bbox("all")))
+
+# # Create another frame inside the Canvas
+# second_frame = Frame(my_canvas)
+
+# # Add the new frame to a window in the Canvas
+# my_canvas.create_window((0, 0), window=second_frame, anchor="nw")
+
+
+# # for thing in range(100):
+# #     Button(second_frame, text="Button {}".format(thing)).grid(row=thing, column=0)
+    
+    
+# another_frame = Frame(second_frame, height=700, width=1000, bg="pink", padx=200, pady=45)
+# another_frame.grid(row=0, column=0)
